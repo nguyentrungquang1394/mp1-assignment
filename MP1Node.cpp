@@ -6,7 +6,7 @@
  **********************************/
 
 #include "MP1Node.h"
-
++#include <sstream>
 /*
  * Note: You can change/add any functions in MP1Node.{h,cpp}
  */
@@ -18,13 +18,13 @@
  */
 MP1Node::MP1Node(Member *member, Params *params, EmulNet *emul, Log *log, Address *address) {
 	for( int i = 0; i < 6; i++ ) {
-		NULLADDR[i] = 0;
-	}
-	this->memberNode = member;
-	this->emulNet = emul;
-	this->log = log;
-	this->par = params;
-	this->memberNode->addr = *address;
++				NULLADDR[i] = 0;
++		}
++		this->memberNode = member;
++		this->emulNet = emul;
++		this->log = log;
++		this->par = params;
++		this->memberNode->addr = *address;
 }
 
 /**
@@ -40,11 +40,11 @@ MP1Node::~MP1Node() {}
  */
 int MP1Node::recvLoop() {
     if ( memberNode->bFailed ) {
-    	return false;
-    }
-    else {
-    	return emulNet->ENrecv(&(memberNode->addr), enqueueWrapper, NULL, 1, &(memberNode->mp1q));
-    }
++				return false;
++		}
++		else {
++				return emulNet->ENrecv(&(memberNode->addr), enqueueWrapper, NULL, 1, &(memberNode->mp1q));
++		}
 }
 
 /**
@@ -54,7 +54,7 @@ int MP1Node::recvLoop() {
  */
 int MP1Node::enqueueWrapper(void *env, char *buff, int size) {
 	Queue q;
-	return q.enqueue((queue<q_elt> *)env, (void *)buff, size);
++		return q.enqueue((queue<q_elt> *)env, (void *)buff, size);
 }
 
 /**
@@ -66,7 +66,7 @@ int MP1Node::enqueueWrapper(void *env, char *buff, int size) {
  */
 void MP1Node::nodeStart(char *servaddrstr, short servport) {
     Address joinaddr;
-    joinaddr = getJoinAddress();
++		joinaddr = getJoinAddress();
 
     // Self booting routines
     if( initThisNode(&joinaddr) == -1 ) {
@@ -93,23 +93,23 @@ void MP1Node::nodeStart(char *servaddrstr, short servport) {
  * DESCRIPTION: Find out who I am and start up
  */
 int MP1Node::initThisNode(Address *joinaddr) {
-	/*
-	 * This function is partially implemented and may require changes
-	 */
-	int id = *(int*)(&memberNode->addr.addr);
-	int port = *(short*)(&memberNode->addr.addr[4]);
-
-	memberNode->bFailed = false;
-	memberNode->inited = true;
-	memberNode->inGroup = false;
-    // node is up!
-	memberNode->nnb = 0;
-	memberNode->heartbeat = 0;
-	memberNode->pingCounter = TFAIL;
-	memberNode->timeOutCounter = -1;
-    initMemberListTable(memberNode);
-
-    return 0;
+		/*
++		 * This function is partially implemented and may require changes
++		 */
++		int id = *(int*)(&memberNode->addr.addr);
++		int port = *(short*)(&memberNode->addr.addr[4]);
++
++		memberNode->bFailed = false;
++		memberNode->inited = true;
++		memberNode->inGroup = false;
++		// node is up!
++		memberNode->nnb = 0;
++		memberNode->heartbeat = 0;
++		memberNode->pingCounter = TFAIL;
++		memberNode->timeOutCounter = -1;
++		initMemberListTable(memberNode, id, port);
++
++		return 0;
 }
 
 /**
@@ -129,15 +129,18 @@ int MP1Node::introduceSelfToGroup(Address *joinaddr) {
         log->LOG(&memberNode->addr, "Starting up group...");
 #endif
         memberNode->inGroup = true;
-    }
-    else {
-        size_t msgsize = sizeof(MessageHdr) + sizeof(joinaddr->addr) + sizeof(long) + 1;
-        msg = (MessageHdr *) malloc(msgsize * sizeof(char));
-
-        // create JOINREQ message: format of data is {struct Address myaddr}
-        msg->msgType = JOINREQ;
-        memcpy((char *)(msg+1), &memberNode->addr.addr, sizeof(memberNode->addr.addr));
-        memcpy((char *)(msg+1) + 1 + sizeof(memberNode->addr.addr), &memberNode->heartbeat, sizeof(long));
++		}
++		else {
++				size_t msgsize = sizeof(MessageHdr) + sizeof(joinaddr->addr) + sizeof(long) + 1;
++				msg = (MessageHdr *) malloc(msgsize * sizeof(char));
++
++				// create JOINREQ message: format of data is {struct Address myaddr}
++				msg->msgType = JOINREQ;
++				memcpy((char *)(msg+1), &memberNode->addr.addr, sizeof(memberNode->addr.addr));
++				memcpy((char *)(msg+1) + sizeof(memberNode->addr.addr) + 1, &memberNode->heartbeat, sizeof(long));
++				//stringstream log_msg;
++				//log_msg << "Writing heartbeat " << memberNode->heartbeat;
++				//log->LOG(&memberNode->addr, log_msg.str().c_str());
 
 #ifdef DEBUGLOG
         sprintf(s, "Trying to join...");
@@ -193,21 +196,21 @@ void MP1Node::nodeLoop() {
 /**
  * FUNCTION NAME: checkMessages
  *
- * DESCRIPTION: Check messages in the queue and call the respective message handler
- */
-void MP1Node::checkMessages() {
-    void *ptr;
-    int size;
-
-    // Pop waiting messages from memberNode's mp1q
-    while ( !memberNode->mp1q.empty() ) {
-    	ptr = memberNode->mp1q.front().elt;
-    	size = memberNode->mp1q.front().size;
-    	memberNode->mp1q.pop();
+ 
     	recvCallBack((void *)memberNode, (char *)ptr, size);
     }
     return;
-}
+}void *ptr;
++		int size;
++
++		// Pop waiting messages from memberNode's mp1q
++		while ( !memberNode->mp1q.empty() ) {
++				ptr = memberNode->mp1q.front().elt;
++				size = memberNode->mp1q.front().size;
++				memberNode->mp1q.pop();
++				recvCallBack((void *)memberNode, (char *)ptr, size);
++		}
++		return;
 
 /**
  * FUNCTION NAME: recvCallBack
